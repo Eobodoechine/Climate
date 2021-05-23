@@ -39,9 +39,9 @@ def welcome():
     """List all available api routes."""
     return (
         f"Available Routes:<br/>"
-        f"/api/v1.0/id<br/>"
         f"/api/v1.0/station<br/>"
-        f"/api/v1.0/<start>"
+        f"/api/v1.0/<start><br/>"
+        f"/api/v1.0/<start>/<end><br/>"
         f"/api/v1.0/prcp<br/>"
         f"/api/v1.0/tobs"
     )
@@ -74,8 +74,7 @@ def stations():
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
-    """Return a list of all passenger names"""
-    # Query all passengers
+  
     results = session.query(measurement.station).all()
 
     session.close()
@@ -88,11 +87,10 @@ def stations():
 
 @app.route("/api/v1.0/tobs")
 def tobs():
-    # Create our session (link) from Python to the DB
+    # Create session (link) from Python to the DB
     session = Session(engine)
 
-    """Return a list of all passenger names"""
-    # Query all passengers
+    
     rdate=session.query(measurement.date,measurement.prcp).order_by(measurement.date.desc()).first()
     ydate=rdate.date
     dt = datetime.strptime(ydate, "%Y-%m-%d")
@@ -110,7 +108,7 @@ def tobs():
     return jsonify(all_tobs)
 
 @app.route("/api/v1.0/<start>")
-def tobs(start):
+def starters(start):
     # Create our session (link) from Python to the DB
     session = Session(engine)
     TMIN=session.query(func.min(measurement.tobs)).filter(measurement.date >= start).all()
@@ -118,12 +116,29 @@ def tobs(start):
     TMAX=session.query(func.max(measurement.tobs)).filter(measurement.date >= start).all()
 
 
-    """Return a list of all passenger names"""
-    # Query all passengers
-    # Convert list of tuples into normal list
-    all_stations = list(np.ravel(TMIN,TAVG,TMAX))
+    Minimum = list(np.ravel(TMIN))
+    Average = list(np.ravel(TAVG))
+    Maximum = list(np.ravel(TMAX))
+    return jsonify(f"Minimum Temperature: {Minimum}, Average Temperature: {Average},Maximum Temperature: {Maximum}")
 
-    return jsonify(all_names)
+
+@app.route("/api/v1.0/<start>/<end>")
+def startersenders(start,end):
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+    TMIN=session.query(func.min(measurement.tobs)).filter(measurement.date >= start).\
+        filter(measurement.date <= end).all()
+    TAVG=session.query(func.avg(measurement.tobs)).filter(measurement.date >= start).\
+        filter(measurement.date <= end).all()
+    TMAX=session.query(func.max(measurement.tobs)).filter(measurement.date >= start).\
+        filter(measurement.date <= end).all()
+
+
+
+    Minimum = list(np.ravel(TMIN))
+    Average = list(np.ravel(TAVG))
+    Maximum = list(np.ravel(TMAX))
+    return jsonify(f"Minimum Temperature: {Minimum}, Average Temperature: {Average},Maximum Temperature: {Maximum}")
 
 if __name__ == '__main__':
     app.run(debug=True)
